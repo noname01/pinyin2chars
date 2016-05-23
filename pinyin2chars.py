@@ -27,12 +27,14 @@ def get_bitext_corpus():
     cid_map = {}
     for tup in cursor.execute(sqlqueries.GET_BITEXT):
     	cid_map[format_cid(tup[0:4])] = format_pair(tup[4:6])
-    # for nonchars value is "x#x"
+    # Query returns non-cjk chars. The value is "x#x".
     nonchar_cids = set()
     for tup in cursor.execute(sqlqueries.GET_NONCHARS):
         cid = format_cid(tup[0:4])
     	cid_map[cid] = format_pair(tup[4:6])
-    	nonchar_cids.add(cid)
+    	# Special symbols like numbers where token_type = w should be added.
+        if (tup[6] != "w"):
+            nonchar_cids.add(cid)
     res = []
     cur_segment = []
     last_sid = None
@@ -48,7 +50,9 @@ def get_bitext_corpus():
         res.append(copy.deepcopy(cur_segment))
     return res
 
+print "Loading bitext..."
 bitext = get_bitext_corpus()
+print "Done."
 
 for i in range(0,20):
     print u" ".join(bitext[i])

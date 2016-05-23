@@ -10,7 +10,7 @@ GET_BITEXT = '''
 
 GET_NONCHARS = '''
         SELECT c.file_id, c.sentence_id, c.word_num, c.char_num,
-            c.character, c.character
+            c.character, c.character, c.token_type
         FROM characters c
-        WHERE c.text_id in ("B") and c.token_type != "w"
+        WHERE c.text_id in ("B") and c.is_cjk = "N"
     '''
