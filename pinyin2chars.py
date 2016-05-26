@@ -1,13 +1,7 @@
 import collections
 import copy
 
-import sqlite3
-
 import sqlqueries
-
-connection = sqlite3.connect('data/lcmc.db3')
-cursor = connection.cursor()
-
 
 def cid_to_sid(cid):
     return cid[:cid.index("-")]
@@ -28,13 +22,13 @@ def get_bitext_corpus():
     # cid = "file_id.sentence_id.word_num.char_num"
     cid_map = {}
     training_chars = set()
-    for tup in cursor.execute(sqlqueries.GET_BITEXT):
+    for tup in sqlqueries.get_bitext():
     	cid_map[format_cid(tup[0:4])] = format_pair(tup[4:6])
         training_chars.add(tup[4])
     # Query returns non-cjk chars. The value is "x#x".
     nonchar_cids = set()
     
-    for tup in cursor.execute(sqlqueries.GET_NONCHARS):
+    for tup in sqlqueries.get_nonchars():
         cid = format_cid(tup[0:4])
     	cid_map[cid] = format_pair(tup[4:6])
     	# Special symbols like numbers where token_type = w should be added.
@@ -61,8 +55,22 @@ def get_bitext_corpus():
     print "{} unique characters found.".format(str(len(training_chars)))
     return res
 
+# Builds a map from pinyins to candidate characters.
+# Have the whole mapp in memory therefore subsequent lookups are fast.
+# res: dict(str->list(str))
+def init_candidate_map():
+    print "building candidate map..."
+    res = {}
+    for tup in sqlqueries.get_candidate_chars():
+        if (not tup[0] in res):
+            res[tup[0]] = []
+        res[tup[0]].append(tup[1])
+    print "Done."
+    return res
+
 # text: list(list(tokens))
 # Generates a dictionary that maps n-grams to counts.
+# Keys: n-grams separated by spaces.
 def get_ngram_counts(text, n):
     print "Generating {}-gram model...".format(str(n))
     ngram_counts = {}
@@ -74,17 +82,24 @@ def get_ngram_counts(text, n):
         head = 0
         while (head + n <= len(line)):
             gram = u" ".join(line[head:head+n])
-            if not gram in ngram_counts:
-                ngram_counts[gram] = 0
-            ngram_counts[gram] += 1
+            ngram_counts[gram] = ngram_counts.get(gram, 0) + 1
             head += 1
     print "Done."
     return ngram_counts
 
-def smooth_counts(counts):
-    return counts
+# Laplace for now
+# Returns a real number.
+def get_smoothed_count(raw_count_map, gram):
+    return raw_count_map.get(gram, 0) + 1.0
+
+def get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
+    return get_smoothed_count(w1 + u" " + w2) / get_smoothed_count(w1)
 
 bitext = get_bitext_corpus()
+candidate_map = init_candidate_map()
 
-unigram_counts = smooth_counts(get_ngram_counts(bitext, 1))
-bigram_counts = smooth_counts(get_ngram_counts(bitext, 2))
+unigram_counts = get_ngram_counts(bitext, 1)
+bigram_counts = get_ngram_counts(bitext, 2)
+
+for key in candidate_map.keys():
+    print key + ": " + u" ".join(candidate_map[key])
