@@ -101,5 +101,5 @@ candidate_map = init_candidate_map()
 unigram_counts = get_ngram_counts(bitext, 1)
 bigram_counts = get_ngram_counts(bitext, 2)
 
-for key in candidate_map.keys():
-    print key + ": " + u" ".join(candidate_map[key])
+# for key in candidate_map.keys():
+#     print key + ": " + u" ".join(candidate_map[key])
