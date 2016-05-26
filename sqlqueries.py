@@ -1,6 +1,6 @@
 import sqlite3
 
-TRAINING_SET_TEXT_TYPES = '("M")'
+TRAINING_SET_TEXT_TYPES = '("A", "B")'
 
 GET_BITEXT = '''
         SELECT c.file_id, c.sentence_id, c.word_num, c.char_num,

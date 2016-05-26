@@ -1,5 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import collections
 import copy
+import re
 
 import sqlqueries
 
@@ -11,8 +15,8 @@ def format_cid(ids):
     char_num = str(ids[3]).zfill(2)
     return "{}.{}-{}:{}".format(str(ids[0]), str(ids[1]), word_num, char_num)
 
-def format_pair(chars):
-    return chars[0] + u"#" + unicode(chars[1])
+def format_pair(character, pinyin):
+    return character + u"#" + unicode(pinyin)
 
 # Bitext: list(list(str)), a list of text segments / utterances.
 # Each str has the form: "char#pinyin", or "x#x" where is_cjk of x = "N"
@@ -23,14 +27,14 @@ def get_bitext_corpus():
     cid_map = {}
     training_chars = set()
     for tup in sqlqueries.get_bitext():
-    	cid_map[format_cid(tup[0:4])] = format_pair(tup[4:6])
+    	cid_map[format_cid(tup[0:4])] = format_pair(tup[4], tup[5])
         training_chars.add(tup[4])
     # Query returns non-cjk chars. The value is "x#x".
     nonchar_cids = set()
     
     for tup in sqlqueries.get_nonchars():
         cid = format_cid(tup[0:4])
-    	cid_map[cid] = format_pair(tup[4:6])
+    	cid_map[cid] = format_pair(tup[4], tup[5])
     	# Special symbols like numbers where token_type = w should be added.
         if (tup[6] != "w"):
             nonchar_cids.add(cid)
@@ -89,11 +93,25 @@ def get_ngram_counts(text, n):
 
 # Laplace for now
 # Returns a real number.
-def get_smoothed_count(raw_count_map, gram):
-    return raw_count_map.get(gram, 0) + 1.0
+def get_smoothed_count(character, pinyin, raw_count_map):
+    pair = format_pair(character, pinyin)
+    return raw_count_map.get(pair, 0) + 1.0
 
 def get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
     return get_smoothed_count(w1 + u" " + w2) / get_smoothed_count(w1)
+
+def convert_unigram(pinyin_str, unigram_counts, candidate_map):
+    pinyins = re.split("\s+", pinyin_str)
+    res = []
+    for pinyin in pinyins:
+        if (not pinyin in candidate_map):
+            return None
+        predicted = candidate_map[pinyin][0]
+        for character in candidate_map[pinyin]:
+            if get_smoothed_count(character, pinyin, unigram_counts) > get_smoothed_count(predicted, pinyin, unigram_counts):
+                predicted = character
+        res.append(predicted)
+    return res
 
 bitext = get_bitext_corpus()
 candidate_map = init_candidate_map()
@@ -101,5 +119,5 @@ candidate_map = init_candidate_map()
 unigram_counts = get_ngram_counts(bitext, 1)
 bigram_counts = get_ngram_counts(bitext, 2)
 
-# for key in candidate_map.keys():
-#     print key + ": " + u" ".join(candidate_map[key])
+chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
+print u" ".join(chars)
