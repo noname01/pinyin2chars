@@ -14,7 +14,7 @@ def cid_to_sid(cid):
 def format_cid(ids):
     word_num = str(ids[2]).zfill(3)
     char_num = str(ids[3]).zfill(2)
-    return "{}.{}-{}:{}".format(str(ids[0]), str(ids[1]), word_num, char_num)
+    return u"{}.{}-{}:{}".format(unicode(ids[0]), unicode(ids[1]), word_num, char_num)
 
 def format_pair(character, pinyin):
     return character + u"#" + pinyin
@@ -54,7 +54,6 @@ def get_bitext_corpus():
             last_sid = cid_to_sid(cid)           
     if (cur_segment):
         res.append(copy.deepcopy(cur_segment))
-    # print u" ".join(training_chars)
     print("Done.")
     print("{} text segments parsed.".format(str(len(res))))
     print("{} unique characters found.".format(str(len(training_chars))))
@@ -94,13 +93,11 @@ def get_ngram_counts(text, n):
     print("Done.")
     return ngram_counts
 
-# Laplace for now.
-# Returns a real number.
-def get_smoothed_count(gram, raw_count_map):
-    return raw_count_map.get(gram, 0) + 1.0
-
+# laplace for now
 def get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
-    return get_smoothed_count(w1 + u" " + w2, bigram_counts) / get_smoothed_count(w1, unigram_counts)
+    smoothed_bigram_count = bigram_counts.get(w1 + u" " + w2, 0) + 1
+    smoothed_unigram_count = unigram_counts.get(w1, 0) + len(unigram_counts.keys())
+    return  smoothed_bigram_count * 1.0 / smoothed_unigram_count
 
 def get_log_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
     return log(get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts))
@@ -108,6 +105,7 @@ def get_log_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
 def convert_unigram(pinyin_str, unigram_counts, candidate_map):
+    print("Predicting \"" + pinyin_str + "\" using unigrams")
     pinyins = re.split("\s+", pinyin_str)
     res = []
     for pinyin in pinyins:
@@ -117,7 +115,7 @@ def convert_unigram(pinyin_str, unigram_counts, candidate_map):
         for character in candidate_map[pinyin]:
             cur_pair = format_pair(character, pinyin)
             predicted_pair = format_pair(predicted, pinyin)
-            if get_smoothed_count(cur_pair, unigram_counts) > get_smoothed_count(predicted_pair, unigram_counts):
+            if unigram_counts.get(cur_pair, 0) > unigram_counts.get(predicted_pair, 0):
                 predicted = character
         res.append(predicted)
     return res
@@ -125,6 +123,7 @@ def convert_unigram(pinyin_str, unigram_counts, candidate_map):
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
 def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
+    print("Predicting \"" + pinyin_str + "\" using bigrams")
     pinyins = re.split("\s+", pinyin_str)
     pinyins.insert(0, "<s>")
     pinyins.insert(len(pinyins), "</s>")
@@ -153,14 +152,13 @@ def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
                 if f[i][cur_char] < f[i - 1][prev_char] + log_prob:
                     f[i][cur_char] = f[i - 1][prev_char] + log_prob
                     best_prev[i][cur_char] = prev_char
-        print(f[i])
+    # print f
+    # trace back the optimal choices
     res = []
     last_char = "</s>"
-    i = n - 1
-    while i > 0:
+    for i in reversed(range(2, n)):
         res.insert(0, best_prev[i][last_char])
         last_char = best_prev[i][last_char]
-        i -= 1
     return res            
 
 bitext = get_bitext_corpus()
@@ -175,7 +173,5 @@ print(u" ".join(chars))
 chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
 print(u" ".join(chars))
 
-chars = convert_bigram_dp("xue2 xiao4", unigram_counts, bigram_counts, candidate_map)
+chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
 print(u" ".join(chars))
-
-# algorithm should be correct but smoothing has problems...
