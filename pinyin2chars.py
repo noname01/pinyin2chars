@@ -5,6 +5,7 @@ import collections
 import copy
 import re
 from math import log
+from random import randint
 
 import sqlqueries
 
@@ -29,7 +30,7 @@ def bitext_segment_to_char_str(segment):
 # Each str has the form: "char#pinyin", or "x#x" where is_cjk of x = "N"
 # division: "trainig|dev|test"
 def get_bitext_corpus(division):
-    print("Loading bitext...")
+    print("Loading " + division + " bitext...")
     # Query returns a list of tuples (cid, "char#pinyin"). Punctuations excluded.
     # cid = "file_id.sentence_id.word_num.char_num"
     cid_map = {}
@@ -112,6 +113,21 @@ def get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
 def get_log_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
     return log(get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts))
 
+# Baseline: randomly pick a candicate character
+# pinyin_str: string of pinyin tokens, no start/end symbol
+# returns a list of predicted characters
+def convert_baseline(pinyin_str, candidate_map):
+    pinyins = re.split("\s+", pinyin_str)
+    res = []
+    for pinyin in pinyins:
+        if (not pinyin in candidate_map):
+            return None
+        k = randint(0, len(candidate_map[pinyin]) - 1)
+        predicted = candidate_map[pinyin][k]
+        res.append(predicted)
+    return res
+
+
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
 def convert_unigram(pinyin_str, unigram_counts, candidate_map):
@@ -171,17 +187,19 @@ def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
         last_char = best_prev[i][last_char]
     return res            
 
-# ngram_n: 1 or 2
-def get_accuracy(ngram_n, bitext_testing, unigram_counts, bigram_counts, candidate_map):
+# model_label: "baseline|unigram|bigram"
+def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, candidate_map):
     total_chars = 0
     correct_chars = 0
     for segment in bitext_testing:
         pinyins = bitext_segment_to_pinyin_str(segment)
         expected = bitext_segment_to_char_str(segment).split(u" ")
         actual = None
-        if ngram_n == 1:
+        if model_label == "baseline":
+            actual = convert_baseline(pinyins, candidate_map)
+        elif model_label == "unigram":
             actual = convert_unigram(pinyins, unigram_counts, candidate_map)
-        elif ngram_n == 2:
+        elif model_label == "bigram":
             actual = convert_bigram_dp(pinyins, unigram_counts, bigram_counts, candidate_map)
         if actual == None:
             continue
@@ -204,22 +222,31 @@ bigram_counts = get_ngram_counts(bitext_training, 2)
 # print chars
 # print(u" ".join(chars))
 
-chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
-print(u" ".join(chars))
+# chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
+# print(u" ".join(chars))
 
-chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
-print(u" ".join(chars))
+# chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
+# print(u" ".join(chars))
 
-chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
-print(u" ".join(chars))
+# chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
+# print(u" ".join(chars))
 
-chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
-print(u" ".join(chars))
+# chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
+# print(u" ".join(chars))
 
-print(get_accuracy(1, bitext_training, unigram_counts, bigram_counts, candidate_map))
+print("training set accuarcy:")
+print("baseline")
+print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
+print("unigram")
+print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+# print("bigram")
+# print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
 
 bitext_testing = get_bitext_corpus("test")
-
-print(get_accuracy(1, bitext_testing, unigram_counts, bigram_counts, candidate_map))
-
-print(get_accuracy(2, bitext_testing, unigram_counts, bigram_counts, candidate_map))
+print("test set accuarcy:")
+print("baseline")
+print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+print("unigram")
+print(get_accuracy("unigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+# print("bigram")
+# print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
