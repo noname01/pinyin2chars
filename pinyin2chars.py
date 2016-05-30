@@ -19,21 +19,28 @@ def format_cid(ids):
 def format_pair(character, pinyin):
     return character + u"#" + pinyin
 
+def bitext_segment_to_pinyin_str(segment):
+    return u" ".join(map(lambda token : token.split(u"#")[1], segment))
+
+def bitext_segment_to_char_str(segment):
+    return u" ".join(map(lambda token : token.split(u"#")[0], segment))
+
 # Bitext: list(list(str)), a list of text segments / utterances.
 # Each str has the form: "char#pinyin", or "x#x" where is_cjk of x = "N"
-def get_bitext_corpus():
+# division: "trainig|dev|test"
+def get_bitext_corpus(division):
     print("Loading bitext...")
     # Query returns a list of tuples (cid, "char#pinyin"). Punctuations excluded.
     # cid = "file_id.sentence_id.word_num.char_num"
     cid_map = {}
     training_chars = set()
-    for tup in sqlqueries.get_bitext():
+    for tup in sqlqueries.get_bitext(division):
         cid_map[format_cid(tup[0:4])] = format_pair(tup[4], tup[5])
         training_chars.add(tup[4])
     # Query returns non-cjk chars. The value is "x#x".
     nonchar_cids = set()
     
-    for tup in sqlqueries.get_nonchars():
+    for tup in sqlqueries.get_nonchars(division):
         cid = format_cid(tup[0:4])
         cid_map[cid] = format_pair(tup[4], tup[5])
         # Special symbols like numbers where token_type = w should be added.
@@ -66,9 +73,12 @@ def init_candidate_map():
     print("building candidate map...")
     res = {}
     for tup in sqlqueries.get_candidate_chars():
-        if (not tup[0] in res):
-            res[tup[0]] = []
-        res[tup[0]].append(tup[1])
+        pinyin = tup[0]
+        if tup[2] == "N":
+            pinyin = tup[1]
+        if (not pinyin in res):
+            res[pinyin] = []
+        res[pinyin].append(tup[1])
     res["<s>"] = ["<s>"]
     res["</s>"] = ["</s>"]
     print("Done.")
@@ -105,7 +115,7 @@ def get_log_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
 def convert_unigram(pinyin_str, unigram_counts, candidate_map):
-    print("Predicting \"" + pinyin_str + "\" using unigrams")
+    # print("Predicting \"" + pinyin_str + "\" using unigrams")
     pinyins = re.split("\s+", pinyin_str)
     res = []
     for pinyin in pinyins:
@@ -123,7 +133,7 @@ def convert_unigram(pinyin_str, unigram_counts, candidate_map):
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
 def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
-    print("Predicting \"" + pinyin_str + "\" using bigrams")
+    # print("Predicting \"" + pinyin_str + "\" using bigrams")
     pinyins = re.split("\s+", pinyin_str)
     pinyins.insert(0, "<s>")
     pinyins.insert(len(pinyins), "</s>")
@@ -161,11 +171,38 @@ def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
         last_char = best_prev[i][last_char]
     return res            
 
-bitext = get_bitext_corpus()
+# ngram_n: 1 or 2
+def get_accuracy(ngram_n, bitext_testing, unigram_counts, bigram_counts, candidate_map):
+    total_chars = 0
+    correct_chars = 0
+    for segment in bitext_testing:
+        pinyins = bitext_segment_to_pinyin_str(segment)
+        expected = bitext_segment_to_char_str(segment).split(u" ")
+        actual = None
+        if ngram_n == 1:
+            actual = convert_unigram(pinyins, unigram_counts, candidate_map)
+        elif ngram_n == 2:
+            actual = convert_bigram_dp(pinyins, unigram_counts, bigram_counts, candidate_map)
+        if actual == None:
+            continue
+        # print(u" ".join(expected))
+        # print(u" ".join(actual))
+        for i in range(0, len(expected)):
+            total_chars += 1
+            if actual[i] == expected[i]:
+                correct_chars += 1
+    return correct_chars * 1.0 / total_chars
+
+bitext_training = get_bitext_corpus("training")
+
 candidate_map = init_candidate_map()
 
-unigram_counts = get_ngram_counts(bitext, 1)
-bigram_counts = get_ngram_counts(bitext, 2)
+unigram_counts = get_ngram_counts(bitext_training, 1)
+bigram_counts = get_ngram_counts(bitext_training, 2)
+
+# chars = convert_unigram("６ ７ shang4 wu3", unigram_counts, candidate_map)
+# print chars
+# print(u" ".join(chars))
 
 chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
 print(u" ".join(chars))
@@ -173,5 +210,16 @@ print(u" ".join(chars))
 chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
 print(u" ".join(chars))
 
+chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
+print(u" ".join(chars))
+
 chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
 print(u" ".join(chars))
+
+print(get_accuracy(1, bitext_training, unigram_counts, bigram_counts, candidate_map))
+
+bitext_testing = get_bitext_corpus("test")
+
+print(get_accuracy(1, bitext_testing, unigram_counts, bigram_counts, candidate_map))
+
+print(get_accuracy(2, bitext_testing, unigram_counts, bigram_counts, candidate_map))
