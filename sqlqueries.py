@@ -1,7 +1,10 @@
 import sqlite3
 
-TRAINING_SET_TEXT_TYPES = '("A", "B", "C", "D", "E")'
-TEST_SET_TEXT_TYPES = '("M", "N", "P", "R")'
+# TRAINING_SET_TEXT_TYPES = '("A")'
+# TEST_SET_TEXT_TYPES = '("M")'
+
+TRAINING_SET_TEXT_TYPES = '("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")'
+TEST_SET_TEXT_TYPES = '("L", "M", "N", "P", "R")'
 
 GET_BITEXT = '''
         SELECT c.file_id, c.sentence_id, c.word_num, c.char_num,
@@ -20,7 +23,7 @@ GET_NONCHARS = '''
 
 GET_CANDIDATE_CHARS = '''
         SELECT pc.character, c.character, c.is_cjk
-        FROM characters c JOIN pinyin_characters pc USING (file_id, sentence_id, word_num, char_num)
+        FROM characters c LEFT OUTER JOIN pinyin_characters pc USING (file_id, sentence_id, word_num, char_num)
         WHERE c.token_type = "w"
         GROUP BY pc.character, c.character
     '''

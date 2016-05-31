@@ -79,7 +79,8 @@ def init_candidate_map():
             pinyin = tup[1]
         if (not pinyin in res):
             res[pinyin] = []
-        res[pinyin].append(tup[1])
+        if (not tup[1] in res[pinyin]):
+            res[pinyin].append(tup[1])
     res["<s>"] = ["<s>"]
     res["</s>"] = ["</s>"]
     print("Done.")
@@ -191,7 +192,11 @@ def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
 def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, candidate_map):
     total_chars = 0
     correct_chars = 0
+    # count = 0
     for segment in bitext_testing:
+        # count += 1
+        # if (count % (len(bitext_testing) / 5) == 0):
+        #     print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%")
         pinyins = bitext_segment_to_pinyin_str(segment)
         expected = bitext_segment_to_char_str(segment).split(u" ")
         actual = None
@@ -202,6 +207,7 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, can
         elif model_label == "bigram":
             actual = convert_bigram_dp(pinyins, unigram_counts, bigram_counts, candidate_map)
         if actual == None:
+            # print "skipped " + u" ".join(expected)
             continue
         # print(u" ".join(expected))
         # print(u" ".join(actual))
