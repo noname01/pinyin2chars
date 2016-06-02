@@ -75,6 +75,7 @@
                     var pinyins = $(this).find('.pinyins').text();
                     var expected = $(this).find('.expected').text().split(' ');
                     var td = $(this).find('.predicted');
+                    td.empty();
                     $.get('/decode', { pinyins: pinyins })
                         .done(function(data) {
                             $.each(data.split('|'), function(i, char) {
