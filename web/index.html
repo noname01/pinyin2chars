@@ -1,51 +1,42 @@
 <!doctype html>
-
-<html ng-app="demoApp">
+<html>
 <head>
     <meta charset="utf-8">
-
     <title>Chinese Pinyins to Characters Decoding Demo</title>
     <meta name="description" content="Chinese Pinyins to Characters Decoding Demo">
     <meta name="author" content="Jingchen Hu">
-
     <link rel="stylesheet" href="/static/main.css">
 
     <!--[if lt IE 9]>
         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    <script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.1/angular.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
 </head>
 
-<body ng-controller="DemoCtrl">
+<body>
     <h1>Chinese Pinyins to Characters Decoding Demo</h1>
     <p>
         Pinyins to decode:
-        <input ng-model="pinyins" size="50" type="text"/>
-        <button type="submit" ng-click="send()"/>Submit</button>
-        <ul>
-            <li class="char" ng-repeat="char in chars track by $index">{{char}}</li>
-        </ul>
+        <input id="pinyinInput" ng-model="pinyins" size="50" type="text"/>
+        <button id="submitButton"/>Submit</button>
+        <ul id="decodeResults"></ul>
     </p>
     
-    <script type="text/javascript">
-        var demoApp = angular.module('demoApp', []);
-        demoApp.controller('DemoCtrl', function($scope, $http) {
-            $scope.chars = [];
-            $scope.send = function() {
-                $http({
-                    url: '/decode', 
-                    method: "GET",
-                    params: {pinyins: $scope.pinyins}
-                }).success(function(data) {
-                    $scope.chars = data.split("|");
-                    // setmandarinspot.annotate();
-                });
-            }
+    <script>
+        $(function(){
+            $('#submitButton').click(function() {
+                $.get('/decode', { pinyins: $('#pinyinInput').val() })
+                    .done(function(data) {
+                        var ul = $('#decodeResults');
+                        ul.empty();
+                        $.each(data.split('|'), function(i, char) {
+                            console.log(char);
+                            ul.append('<li class="char">' + char + '</li>')
+                        });
+                        mandarinspot.annotate('.char');
+                    });
+            });
         });
-
-        setInterval(function() {
-            mandarinspot.annotate();
-        }, 1000);
     </script>
     <script src="//mandarinspot.com/static/mandarinspot.min.js" charset="UTF-8"></script>
 </body>
