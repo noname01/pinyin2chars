@@ -6,7 +6,6 @@
     <meta name="description" content="Chinese Pinyins to Characters Decoding Demo">
     <meta name="author" content="Jingchen Hu">
     <link rel="stylesheet" href="/static/main.css">
-
     <!--[if lt IE 9]>
         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
@@ -15,11 +14,19 @@
 
 <body>
     <h1>Chinese Pinyins to Characters Decoding Demo</h1>
+    <p>This tool demonstrates a bigram based algorithm that guesses the character decoding of pinyin utterances.</p>
     <p>
-        Pinyins to decode:
+        Pinyins to decode (/[a-z]+[1-5]/ separated by spaces):
         <input id="pinyinInput" ng-model="pinyins" size="50" type="text"/>
         <button id="submitButton"/>Submit</button>
         <ul id="decodeResults"></ul>
+    </p>
+    <p>
+        Or test against random sample bitext:
+        <button id="generateButton">Generate</button>
+        <button id="testButton" disabled>Test</button>
+        <table id="resultsTable">
+        </table>
     </p>
     
     <script>
@@ -33,8 +40,52 @@
                             console.log(char);
                             ul.append('<li class="char">' + char + '</li>')
                         });
-                        mandarinspot.annotate('.char');
+                        mandarinspot.annotate();
                     });
+            });
+
+            $('#generateButton').click(function() {
+                var pinyins = [];
+                var expected = [];
+                $.get('/bitext')
+                    .done(function(data) {
+                        var bitext = JSON.parse(data);
+                        $.each(bitext, function(i, line) {
+                            pinyins.push(line.map(function(token) {
+                                return token.split('#')[1];
+                            }).join(' '));
+                            expected.push(line.map(function(token) {
+                                return token.split('#')[0];
+                            }).join(' '));
+                        });
+                        console.log(pinyins);
+                        console.log(expected);
+                        var resultsTable = $('#resultsTable');
+                        resultsTable.empty().append('<tr><th>sample</th><th>predicted</th></tr>');
+                        for (var i = 0; i < pinyins.length; i++) {
+                            resultsTable.append('<tr class="row"><td><span class="pinyins">' + pinyins[i] + '</span><br/><span class="expected">' + expected[i] +'</span></td><td class="predicted"></td></tr>');
+                        }
+                        $('#testButton').removeAttr('disabled');
+                        mandarinspot.annotate();
+                    });
+            });
+
+            $('#testButton').click(function() {
+                $(".row").each(function() {
+                    var pinyins = $(this).find('.pinyins').text();
+                    var expected = $(this).find('.expected').text().split(' ');
+                    var td = $(this).find('.predicted');
+                    $.get('/decode', { pinyins: pinyins })
+                        .done(function(data) {
+                            $.each(data.split('|'), function(i, char) {
+                                console.log(char + " " + expected[i]);
+                                var span = $('<span class="char">' + char + '</span>');
+                                span.addClass(char == expected[i] ? "correct" : "incorrect");
+                                td.append(span);
+                            });
+                            mandarinspot.annotate();
+                        });
+                });
             });
         });
     </script>

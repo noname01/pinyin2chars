@@ -1,14 +1,16 @@
+p {
+	margin-bottom: 30px;
+}
 
-
-li.char {
+.char {
 	display: inline-block;
-	padding: 5px;
+	padding: 3px;
 }
 
 .char.correct {
-	background-color: green
+	background-color: rgba(139, 195, 74, 0.36);
 }
 
 .char.incorrect {
-	background-color: red
+	background-color: rgba(244, 67, 54, 0.26);
 }

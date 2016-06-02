@@ -245,6 +245,11 @@ if __name__ == "__main__":
     print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
 
     bitext_testing = get_bitext_corpus("test")
+
+    f = open('test_bitext.json','w')
+    f.write(json.dumps(bitext_testing))
+    f.close();
+    
     print("test set accuarcy:")
     print("baseline")
     print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
