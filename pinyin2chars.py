@@ -7,7 +7,8 @@ import json
 from math import log
 from random import randint
 
-import sqlqueries
+if __name__ == "__main__":
+    import sqlqueries
 
 def cid_to_sid(cid):
     return cid[:cid.index("-")]
