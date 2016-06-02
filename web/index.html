@@ -1,0 +1,52 @@
+<!doctype html>
+
+<html ng-app="demoApp">
+<head>
+    <meta charset="utf-8">
+
+    <title>Chinese Pinyins to Characters Decoding Demo</title>
+    <meta name="description" content="Chinese Pinyins to Characters Decoding Demo">
+    <meta name="author" content="Jingchen Hu">
+
+    <link rel="stylesheet" href="/static/main.css">
+
+    <!--[if lt IE 9]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.1/angular.min.js"></script>
+</head>
+
+<body ng-controller="DemoCtrl">
+    <h1>Chinese Pinyins to Characters Decoding Demo</h1>
+    <p>
+        Pinyins to decode:
+        <input ng-model="pinyins" size="50" type="text"/>
+        <button type="submit" ng-click="send()"/>Submit</button>
+        <ul>
+            <li class="char" ng-repeat="char in chars track by $index">{{char}}</li>
+        </ul>
+    </p>
+    
+    <script type="text/javascript">
+        var demoApp = angular.module('demoApp', []);
+        demoApp.controller('DemoCtrl', function($scope, $http) {
+            $scope.chars = [];
+            $scope.send = function() {
+                $http({
+                    url: '/decode', 
+                    method: "GET",
+                    params: {pinyins: $scope.pinyins}
+                }).success(function(data) {
+                    $scope.chars = data.split("|");
+                    // setmandarinspot.annotate();
+                });
+            }
+        });
+
+        setInterval( function(){
+            mandarinspot.annotate();
+        }, 2000);
+    </script>
+    <script src="//mandarinspot.com/static/mandarinspot.min.js" charset="UTF-8"></script>
+</body>
+</html>

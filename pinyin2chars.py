@@ -224,35 +224,42 @@ candidate_map = init_candidate_map()
 unigram_counts = get_ngram_counts(bitext_training, 1)
 bigram_counts = get_ngram_counts(bitext_training, 2)
 
-# chars = convert_unigram("６ ７ shang4 wu3", unigram_counts, candidate_map)
-# print chars
-# print(u" ".join(chars))
+def decode_pinyin(pinyin_str):
+    chars = convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map)
+    if chars == None:
+        return "Invalid input or no decoding found."
+    return u"|".join(chars)
 
-# chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
-# print(u" ".join(chars))
+if __name__ == "__main__":
+    # chars = convert_unigram("６ ７ shang4 wu3", unigram_counts, candidate_map)
+    # print chars
+    # print(u" ".join(chars))
 
-# chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
-# print(u" ".join(chars))
+    # chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
+    # print(u" ".join(chars))
 
-# chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
-# print(u" ".join(chars))
+    # chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
+    # print(u" ".join(chars))
 
-# chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
-# print(u" ".join(chars))
+    # chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
+    # print(u" ".join(chars))
 
-print("training set accuarcy:")
-print("baseline")
-print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
-print("unigram")
-print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
-# print("bigram")
-# print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    # chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
+    # print(u" ".join(chars))
 
-bitext_testing = get_bitext_corpus("test")
-print("test set accuarcy:")
-print("baseline")
-print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
-print("unigram")
-print(get_accuracy("unigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
-# print("bigram")
-# print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print("training set accuarcy:")
+    print("baseline")
+    print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    print("unigram")
+    print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    # print("bigram")
+    # print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+
+    bitext_testing = get_bitext_corpus("test")
+    print("test set accuarcy:")
+    print("baseline")
+    print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print("unigram")
+    print(get_accuracy("unigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    # print("bigram")
+    # print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))

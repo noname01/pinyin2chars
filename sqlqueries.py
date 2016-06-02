@@ -21,6 +21,7 @@ GET_NONCHARS = '''
         WHERE c.text_id in {} and c.is_cjk = "N"
     '''
 
+# let outer join since some special chars don't have pinyin
 GET_CANDIDATE_CHARS = '''
         SELECT pc.character, c.character, c.is_cjk
         FROM characters c LEFT OUTER JOIN pinyin_characters pc USING (file_id, sentence_id, word_num, char_num)

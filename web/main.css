@@ -1,0 +1,13 @@
+
+li.char {
+	display: inline-block;
+	padding: 5px;
+}
+
+.char.correct {
+	background-color: green
+}
+
+.char.incorrect {
+	background-color: red
+}
