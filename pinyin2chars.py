@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import collections
 import copy
 import re
+import json
 from math import log
 from random import randint
 
@@ -217,43 +217,33 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, can
                 correct_chars += 1
     return correct_chars * 1.0 / total_chars
 
-bitext_training = get_bitext_corpus("training")
-
-candidate_map = init_candidate_map()
-
-unigram_counts = get_ngram_counts(bitext_training, 1)
-bigram_counts = get_ngram_counts(bitext_training, 2)
-
-def decode_pinyin(pinyin_str):
-    chars = convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map)
-    if chars == None:
-        return "Invalid input or no decoding found."
-    return u"|".join(chars)
-
 if __name__ == "__main__":
-    # chars = convert_unigram("６ ７ shang4 wu3", unigram_counts, candidate_map)
-    # print chars
-    # print(u" ".join(chars))
+    bitext_training = get_bitext_corpus("training")
+    candidate_map = init_candidate_map()
 
-    # chars = convert_unigram("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, candidate_map)
-    # print(u" ".join(chars))
+    f = open('candidate_map.json','w')
+    f.write(json.dumps(candidate_map))
+    f.close();
 
-    # chars = convert_bigram_dp("jin1 tian1 tian1 qi4 hen3 hao3 a5", unigram_counts, bigram_counts, candidate_map)
-    # print(u" ".join(chars))
+    unigram_counts = get_ngram_counts(bitext_training, 1)
 
-    # chars = convert_unigram("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, candidate_map)
-    # print(u" ".join(chars))
+    f = open('unigram_counts.json','w')
+    f.write(json.dumps(unigram_counts))
+    f.close();
 
-    # chars = convert_bigram_dp("wei3 da4 ling3 xiu4 mao2 zhu3 xi2", unigram_counts, bigram_counts, candidate_map)
-    # print(u" ".join(chars))
+    bigram_counts = get_ngram_counts(bitext_training, 2)
+
+    f = open('bigram_counts.json','w')
+    f.write(json.dumps(bigram_counts))
+    f.close();
 
     print("training set accuarcy:")
     print("baseline")
     print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
     print("unigram")
     print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
-    # print("bigram")
-    # print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    print("bigram")
+    print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
 
     bitext_testing = get_bitext_corpus("test")
     print("test set accuarcy:")
@@ -261,5 +251,5 @@ if __name__ == "__main__":
     print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
     print("unigram")
     print(get_accuracy("unigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
-    # print("bigram")
-    # print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print("bigram")
+    print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
