@@ -29,20 +29,31 @@ GET_CANDIDATE_CHARS = '''
         GROUP BY pc.character, c.character
     '''
 
-connection = sqlite3.connect('data/lcmc.db3')
-cursor = connection.cursor()
-
 def get_bitext(division):
+    connection = sqlite3.connect('data/lcmc.db3')
+    cursor = connection.cursor()
+    res = None
     if (division == "training"):
-        return cursor.execute(GET_BITEXT.format(TRAINING_SET_TEXT_TYPES))
+        res = cursor.execute(GET_BITEXT.format(TRAINING_SET_TEXT_TYPES))
     if (division == "test"):
-        return cursor.execute(GET_BITEXT.format(TEST_SET_TEXT_TYPES))
+        res = cursor.execute(GET_BITEXT.format(TEST_SET_TEXT_TYPES))
+    connection.close()
+    return res
 
 def get_nonchars(division):
+    connection = sqlite3.connect('data/lcmc.db3')
+    cursor = connection.cursor()
+    res = None
     if (division == "training"):
-        return cursor.execute(GET_NONCHARS.format(TRAINING_SET_TEXT_TYPES))
+        res = cursor.execute(GET_NONCHARS.format(TRAINING_SET_TEXT_TYPES))
     if (division == "test"):
-        return cursor.execute(GET_NONCHARS.format(TEST_SET_TEXT_TYPES))
+        res = cursor.execute(GET_NONCHARS.format(TEST_SET_TEXT_TYPES))
+    connection.close()
+    return res
 
 def get_candidate_chars():
-    return cursor.execute(GET_CANDIDATE_CHARS)
+    connection = sqlite3.connect('data/lcmc.db3')
+    cursor = connection.cursor()
+    res = cursor.execute(GET_CANDIDATE_CHARS)
+    connection.close()
+    return res

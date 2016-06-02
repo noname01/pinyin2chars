@@ -242,8 +242,6 @@ if __name__ == "__main__":
     print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
     print("unigram")
     print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
-    print("bigram")
-    print(get_accuracy("bigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
 
     bitext_testing = get_bitext_corpus("test")
     print("test set accuarcy:")
