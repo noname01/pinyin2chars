@@ -34,9 +34,17 @@ def root():
 
 @app.route('/decode')
 def decode_api():
+    model = request.args.get('model')
     pinyin_str = request.args.get('pinyins')
     smoother = smoothers[request.args.get('smoothing')]
-    chars = pinyin2chars.convert_bigram_dp(pinyin_str, smoother, candidate_map)
+    has_tone = request.args.get('tone') == "withtones"
+    chars = None
+    if model == "bigram":
+        chars = pinyin2chars.convert_bigram_dp(pinyin_str, smoother, candidate_map, has_tone)
+    elif model == "unigram":
+        chars = pinyin2chars.convert_unigram(pinyin_str, unigram_counts, candidate_map, has_tone)
+    elif model == "baseline":
+        chars = pinyin2chars.convert_baseline(pinyin_str, candidate_map, has_tone)
     if chars == None:
         return "Invalid input or no decoding found."
     return u"|".join(chars)

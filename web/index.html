@@ -14,30 +14,42 @@
 
 <body>
     <h1>Chinese Pinyins to Characters Decoding Demo</h1>
-    <p>This tool demonstrates a bigram based algorithm that guesses the character decoding of pinyin utterances. <a href="https://docs.google.com/presentation/d/1c3jGuf38LuiKCAiNXlXO3-z70f-xQyODPD-D_8qgioY/edit#slide=id.g143fa8cb58_0_106">Slides</a></p>
+    <p>This tool demonstrates an n-gram based algorithm that guesses the character decoding of Chinese pinyin utterances. <a href="https://docs.google.com/presentation/d/1c3jGuf38LuiKCAiNXlXO3-z70f-xQyODPD-D_8qgioY/edit#slide=id.g143fa8cb58_0_106">Slides</a></p>
     <p>
+        Language Model:
+        <select id="model">
+            <option value="bigram">Bigram</option>
+            <option value="unigram">Unigram</option>
+            <option value="baseline">Baseline</option>
+        </select>
         Smoothing: 
         <select id="smoothing">
             <option value="laplace">Laplace</option>
             <option value="wittenbell">Witten Bell</option>
             <option value="goodturing">Good Turing</option>
         </select>
-        Test set size:
+
+        Pinyin: 
+        <select id="tone">
+            <option value="withtones">with tones</option>
+            <option value="withouttones">without tones</option>
+        </select>
+    </p>
+    <p>
+        Pinyins to decode <span id="regex">(/[a-z]+[1-5]/</span> separated by spaces):
+        <input id="pinyinInput" ng-model="pinyins" size="50" type="text"/>
+        <button id="submitButton"/>Submit</button>
+        <ul id="decodeResults"></ul>
+    </p>
+    <p>
+        Or test against a random sample bitext:
+        size:
         <select id="setSize">
             <option value="20">20</option>
             <option value="50">50</option>
             <option value="100">100</option>
             <option value="200">200</option>
         </select>
-    </p>
-    <p>
-        Pinyins to decode (/[a-z]+[1-5]/ separated by spaces):
-        <input id="pinyinInput" ng-model="pinyins" size="50" type="text"/>
-        <button id="submitButton"/>Submit</button>
-        <ul id="decodeResults"></ul>
-    </p>
-    <p>
-        Or test against random sample bitext:
         <button id="generateButton">Generate</button>
         <button id="testButton" disabled>Test</button>
         <p id="info"></p>
@@ -48,9 +60,15 @@
     <script>
         $(function(){
             $('#submitButton').click(function() {
+                var pinyinStr = $('#pinyinInput').val();
+                if ($('#tone').val() != 'withtones') {
+                    pinyinStr.replace(/\d/g, "");
+                }
                 $.when($.get('/decode', {
-                        pinyins: $('#pinyinInput').val(),
-                        smoothing: $('#smoothing').val()
+                        model: $('#model').val(),
+                        pinyins: pinyinStr,
+                        smoothing: $('#smoothing').val(),
+                        tone: $('#tone').val()
                     })).done(function(data) {
                         var ul = $('#decodeResults');
                         ul.empty();
@@ -76,12 +94,15 @@
                                 return token.split('#')[0];
                             }).join(' '));
                         });
-                        // console.log(pinyins);
-                        // console.log(expected);
                         var resultsTable = $('#resultsTable');
                         resultsTable.empty().append('<tr><th>sample</th><th>predicted</th></tr>');
                         for (var i = 0; i < pinyins.length; i++) {
-                            resultsTable.append('<tr class="row"><td><span class="pinyins">' + pinyins[i] + '</span><br/><span class="expected">' + expected[i] +'</span></td><td class="predicted"></td></tr>');
+                            var pinyinStr = pinyins[i];
+                            if ($('#tone').val() != 'withtones') {
+                                pinyinStr = pinyinStr.replace(/\d/g, "");
+                                console.log(pinyinStr);
+                            }
+                            resultsTable.append('<tr class="row"><td><span class="pinyins">' + pinyinStr + '</span><br/><span class="expected">' + expected[i] +'</span></td><td class="predicted"></td></tr>');
                         }
                         $('#testButton').removeAttr('disabled');
                         $("#info").empty();
@@ -101,8 +122,10 @@
                     var td = $(this).find('.predicted');
                     td.empty();
                     $.when($.get('/decode', {
+                            model: $('#model').val(),
                             pinyins: pinyins,
-                            smoothing: $('#smoothing').val()
+                            smoothing: $('#smoothing').val(),
+                            tone: $('#tone').val()
                         })).done(function(data) {
                             $.each(data.split('|'), function(i, char) {
                                 total++;
@@ -123,6 +146,15 @@
                         });
                 });
             });
+        });
+
+        $('#tone').change(function() {
+            if ($(this).val() == "withtones") {
+                $('#regex').text('(/[a-z]+[1-5]/');
+            } else {
+                $('#regex').text('(/[a-z]+/');
+            }
+            $('#resultsTable').empty();
         });
     </script>
     <script src="//mandarinspot.com/static/mandarinspot.min.js" charset="UTF-8"></script>

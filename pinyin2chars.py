@@ -4,6 +4,7 @@ import collections
 import copy
 import re
 import json
+import operator
 
 from random import randint
 from math import log
@@ -111,9 +112,25 @@ def get_ngram_counts(text, n):
 # Baseline: randomly pick a candicate character
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
-def convert_baseline(pinyin_str, candidate_map):
+def convert_baseline(pinyin_str, candidate_map, has_tone=True):
     pinyins = re.split("\s+", pinyin_str)
     res = []
+    if not has_tone:
+        for pinyin_raw in pinyins:
+            candidate_chars = set()
+            for tone in range(1, 6):
+                pinyin = pinyin_raw + str(tone)
+                if (not pinyin in candidate_map):
+                    continue
+                for character in candidate_map[pinyin]:
+                    candidate_chars.add(character)
+            if (len(candidate_chars) == 0):
+                return None
+            k = randint(0, len(candidate_chars) - 1)
+            predicted = list(candidate_chars)[k]
+            res.append(predicted)
+        return res
+    # has tone
     for pinyin in pinyins:
         if (not pinyin in candidate_map):
             return None
@@ -122,13 +139,27 @@ def convert_baseline(pinyin_str, candidate_map):
         res.append(predicted)
     return res
 
-
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
-def convert_unigram(pinyin_str, unigram_counts, candidate_map):
+def convert_unigram(pinyin_str, unigram_counts, candidate_map, has_tone=True):
     # print("Predicting \"" + pinyin_str + "\" using unigrams")
     pinyins = re.split("\s+", pinyin_str)
     res = []
+    if (not has_tone):
+        for pinyin_raw in pinyins:
+            candidate_chars = {}    
+            for tone in range(1, 6):
+                pinyin = pinyin_raw + str(tone)
+                if (not pinyin in candidate_map):
+                    continue
+                for character in candidate_map[pinyin]:
+                    cur_pair = format_pair(character, pinyin)
+                    candidate_chars[character] = candidate_chars.get(character, 0) + unigram_counts.get(cur_pair, 0)
+            if (candidate_chars == {}):
+                return None
+            res.append(max(candidate_chars.iteritems(), key=operator.itemgetter(1))[0])
+        return res
+    # has tone        
     for pinyin in pinyins:
         if (not pinyin in candidate_map):
             return None
@@ -143,7 +174,7 @@ def convert_unigram(pinyin_str, unigram_counts, candidate_map):
 
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
-def convert_bigram_dp(pinyin_str, smoother, candidate_map):
+def convert_bigram_dp(pinyin_str, smoother, candidate_map, has_tone=True):
     # print("Predicting \"" + pinyin_str + "\" using bigrams")
     pinyins = re.split("\s+", pinyin_str)
     pinyins.insert(0, "<s>")
@@ -188,7 +219,7 @@ def convert_bigram_dp(pinyin_str, smoother, candidate_map):
     return res            
 
 # model_label: "baseline|unigram|bigram"
-def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smoother=None):
+def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smoother=None, has_tone=True):
     total_chars = 0
     correct_chars = 0
     count = 0
@@ -197,14 +228,16 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smo
         if (count % (len(bitext_testing) / 10) == 0):
             print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%")
         pinyins = bitext_segment_to_pinyin_str(segment)
+        if (not has_tone):
+            pinyins = re.sub(r"\d", "", pinyins)
         expected = bitext_segment_to_char_str(segment).split(u" ")
         actual = None
         if model_label == "baseline":
-            actual = convert_baseline(pinyins, candidate_map)
+            actual = convert_baseline(pinyins, candidate_map, has_tone)
         elif model_label == "unigram":
-            actual = convert_unigram(pinyins, unigram_counts, candidate_map)
+            actual = convert_unigram(pinyins, unigram_counts, candidate_map, has_tone)
         elif model_label == "bigram":
-            actual = convert_bigram_dp(pinyins, smoother, candidate_map)
+            actual = convert_bigram_dp(pinyins, smoother, candidate_map, has_tone)
         if actual == None:
             # print "skipped " + u" ".join(expected)
             continue
@@ -236,7 +269,10 @@ if __name__ == "__main__":
     f.write(json.dumps(bigram_counts))
     f.close();
 
-    # Good turing smoothing initialization takes longer. Precomputes it now.
+    # chars = convert_baseline(u"wei da ling xu mao zhu xi", candidate_map, False)
+    # print u" ".join(chars)
+
+    #Good turing smoothing initialization takes longer. Precomputes it now.
     print("Intializing smoothing...")
     smoother = smoothing.GoodTuring(unigram_counts, bigram_counts)
     f = open('gt_smoothed_counts.json','w')
@@ -249,9 +285,9 @@ if __name__ == "__main__":
 
     print("training set accuarcy:")
     print("baseline")
-    print(get_accuracy("baseline", bitext_training, unigram_counts, candidate_map))
+    print(get_accuracy("baseline", bitext_training, unigram_counts, candidate_map, smoother))
     print("unigram")
-    print(get_accuracy("unigram", bitext_training, unigram_counts, candidate_map))
+    print(get_accuracy("unigram", bitext_training, unigram_counts, candidate_map, smoother))
 
     bitext_testing = get_bitext_corpus("test")
 
@@ -261,9 +297,9 @@ if __name__ == "__main__":
     
     print("test set accuarcy:")
     print("baseline")
-    print(get_accuracy("baseline", bitext_testing, unigram_counts, candidate_map))
+    print(get_accuracy("baseline", bitext_testing, unigram_counts, candidate_map, smoother))
     print("unigram")
-    print(get_accuracy("unigram", bitext_testing, unigram_counts, candidate_map))
+    print(get_accuracy("unigram", bitext_testing, unigram_counts, candidate_map, smoother))
     print("bigram")
     print(get_accuracy("bigram", bitext_testing, unigram_counts, candidate_map, smoother))
     
