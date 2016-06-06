@@ -2,6 +2,7 @@ from flask import Flask, request, send_from_directory
 import json
 import random
 import pinyin2chars
+import smoothing
 
 def load_from_json_file(fname):
     with open(fname) as f:
@@ -12,7 +13,11 @@ def load_from_json_file(fname):
 candidate_map = load_from_json_file("candidate_map.json")
 unigram_counts = load_from_json_file("unigram_counts.json")
 bigram_counts = load_from_json_file("bigram_counts.json")
+lp_smoother = smoothing.Laplace(unigram_counts, bigram_counts)
+wb_smoother = smoothing.WittenBell(unigram_counts, bigram_counts)
+gt_smoother = smoothing.GoodTuring(unigram_counts, bigram_counts)
 test_bitext = load_from_json_file("test_bitext.json")
+smoothers = {"laplace": lp_smoother, "wittenbell": wb_smoother, "goodturing": gt_smoother}
 
 # set the project root directory as the static folder, you can set others.
 app = Flask(__name__, static_url_path='')
@@ -28,7 +33,8 @@ def root():
 @app.route('/decode')
 def decode_api():
     pinyin_str = request.args.get('pinyins')
-    chars = pinyin2chars.convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map)
+    smoother = smoothers[request.args.get('smoothing')]
+    chars = pinyin2chars.convert_bigram_dp(pinyin_str, smoother, candidate_map)
     if chars == None:
         return "Invalid input or no decoding found."
     return u"|".join(chars)
@@ -36,10 +42,9 @@ def decode_api():
 
 @app.route('/bitext')
 def bitext_api():
-    SAMPLE_SIZE = 30
-    rand_smpl = [ test_bitext[i] for i in random.sample(xrange(len(test_bitext)), SAMPLE_SIZE) ]
+    sample_size = int(request.args.get('size'))
+    rand_smpl = [ test_bitext[i] for i in random.sample(xrange(len(test_bitext)), sample_size) ]
     return json.dumps(rand_smpl)
-
 
 if __name__ == "__main__":
     app.run()

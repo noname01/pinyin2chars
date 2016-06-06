@@ -16,6 +16,21 @@
     <h1>Chinese Pinyins to Characters Decoding Demo</h1>
     <p>This tool demonstrates a bigram based algorithm that guesses the character decoding of pinyin utterances. <a href="https://docs.google.com/presentation/d/1c3jGuf38LuiKCAiNXlXO3-z70f-xQyODPD-D_8qgioY/edit#slide=id.g143fa8cb58_0_106">Slides</a></p>
     <p>
+        Smoothing: 
+        <select id="smoothing">
+            <option value="laplace">Laplace</option>
+            <option value="wittenbell">Witten Bell</option>
+            <option value="goodturing">Good Turing</option>
+        </select>
+        Test set size:
+        <select id="setSize">
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="500">500</option>
+        </select>
+    </p>
+    <p>
         Pinyins to decode (/[a-z]+[1-5]/ separated by spaces):
         <input id="pinyinInput" ng-model="pinyins" size="50" type="text"/>
         <button id="submitButton"/>Submit</button>
@@ -25,6 +40,7 @@
         Or test against random sample bitext:
         <button id="generateButton">Generate</button>
         <button id="testButton" disabled>Test</button>
+        <p id="info"></p>
         <table id="resultsTable">
         </table>
     </p>
@@ -32,12 +48,13 @@
     <script>
         $(function(){
             $('#submitButton').click(function() {
-                $.get('/decode', { pinyins: $('#pinyinInput').val() })
-                    .done(function(data) {
+                $.when($.get('/decode', {
+                        pinyins: $('#pinyinInput').val(),
+                        smoothing: $('#smoothing').val()
+                    })).done(function(data) {
                         var ul = $('#decodeResults');
                         ul.empty();
                         $.each(data.split('|'), function(i, char) {
-                            console.log(char);
                             ul.append('<li class="char">' + char + '</li>')
                         });
                         mandarinspot.annotate();
@@ -47,8 +64,9 @@
             $('#generateButton').click(function() {
                 var pinyins = [];
                 var expected = [];
-                $.get('/bitext')
-                    .done(function(data) {
+                $.when($.get('/bitext', {
+                        size: $('#setSize').val()
+                    })).done(function(data) {
                         var bitext = JSON.parse(data);
                         $.each(bitext, function(i, line) {
                             pinyins.push(line.map(function(token) {
@@ -58,32 +76,47 @@
                                 return token.split('#')[0];
                             }).join(' '));
                         });
-                        console.log(pinyins);
-                        console.log(expected);
+                        // console.log(pinyins);
+                        // console.log(expected);
                         var resultsTable = $('#resultsTable');
                         resultsTable.empty().append('<tr><th>sample</th><th>predicted</th></tr>');
                         for (var i = 0; i < pinyins.length; i++) {
                             resultsTable.append('<tr class="row"><td><span class="pinyins">' + pinyins[i] + '</span><br/><span class="expected">' + expected[i] +'</span></td><td class="predicted"></td></tr>');
                         }
                         $('#testButton').removeAttr('disabled');
+                        $("#info").empty();
                         mandarinspot.annotate();
                     });
             });
 
             $('#testButton').click(function() {
+                var toDecode = $('.row').length;
+                var correct = 0.0;
+                var total = 0.0;
+                $("#info").empty();
                 $(".row").each(function() {
                     var pinyins = $(this).find('.pinyins').text();
                     var expected = $(this).find('.expected').text().split(' ');
                     var td = $(this).find('.predicted');
                     td.empty();
-                    $.get('/decode', { pinyins: pinyins })
-                        .done(function(data) {
+                    $.when($.get('/decode', {
+                            pinyins: pinyins,
+                            smoothing: $('#smoothing').val()
+                        })).done(function(data) {
                             $.each(data.split('|'), function(i, char) {
-                                console.log(char + " " + expected[i]);
+                                // console.log(char + " " + expected[i]);
+                                total++;
+                                if (char == expected[i]) {
+                                    correct++;
+                                }
                                 var span = $('<span class="char">' + char + '</span>');
                                 span.addClass(char == expected[i] ? "correct" : "incorrect");
                                 td.append(span);
                             });
+                            toDecode--;
+                            if (toDecode == 0) {
+                                $("#info").text("Accuracy for this set: " + correct / total);
+                            }
                             mandarinspot.annotate();
                         });
                 });

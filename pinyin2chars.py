@@ -4,11 +4,14 @@ import collections
 import copy
 import re
 import json
-from math import log
+
 from random import randint
+from math import log
 
 if __name__ == "__main__":
     import sqlqueries
+
+import smoothing
 
 def cid_to_sid(cid):
     return cid[:cid.index("-")]
@@ -19,6 +22,8 @@ def format_cid(ids):
     return u"{}.{}-{}:{}".format(unicode(ids[0]), unicode(ids[1]), word_num, char_num)
 
 def format_pair(character, pinyin):
+    if (character == "<s>" or character == "</s>"):
+        return character
     return character + u"#" + pinyin
 
 def bitext_segment_to_pinyin_str(segment):
@@ -106,15 +111,6 @@ def get_ngram_counts(text, n):
     print("Done.")
     return ngram_counts
 
-# laplace for now
-def get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
-    smoothed_bigram_count = bigram_counts.get(w1 + u" " + w2, 0) + 1
-    smoothed_unigram_count = unigram_counts.get(w1, 0) + len(unigram_counts.keys())
-    return  smoothed_bigram_count * 1.0 / smoothed_unigram_count
-
-def get_log_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts):
-    return log(get_cond_prob_bigram(w1, w2, unigram_counts, bigram_counts))
-
 # Baseline: randomly pick a candicate character
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
@@ -150,7 +146,7 @@ def convert_unigram(pinyin_str, unigram_counts, candidate_map):
 
 # pinyin_str: string of pinyin tokens, no start/end symbol
 # returns a list of predicted characters
-def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
+def convert_bigram_dp(pinyin_str, smoother, candidate_map):
     # print("Predicting \"" + pinyin_str + "\" using bigrams")
     pinyins = re.split("\s+", pinyin_str)
     pinyins.insert(0, "<s>")
@@ -176,28 +172,33 @@ def convert_bigram_dp(pinyin_str, unigram_counts, bigram_counts, candidate_map):
             best_prev[i][cur_char] = None
             for prev_char in prev_chars:
                 prev_pair = format_pair(prev_char, pinyins[i - 1])
-                log_prob = get_log_cond_prob_bigram(prev_pair, cur_pair, unigram_counts, bigram_counts)
+                log_prob = smoother.bigram_log_prob(prev_pair, cur_pair)
                 if f[i][cur_char] < f[i - 1][prev_char] + log_prob:
                     f[i][cur_char] = f[i - 1][prev_char] + log_prob
                     best_prev[i][cur_char] = prev_char
+
     # print f
     # trace back the optimal choices
     res = []
     last_char = "</s>"
     for i in reversed(range(2, n)):
-        res.insert(0, best_prev[i][last_char])
-        last_char = best_prev[i][last_char]
+        try:
+            res.insert(0, best_prev[i][last_char])
+            last_char = best_prev[i][last_char]
+        except KeyError:
+            print pinyin_str
+        
     return res            
 
 # model_label: "baseline|unigram|bigram"
-def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, candidate_map):
+def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smoother=None):
     total_chars = 0
     correct_chars = 0
-    # count = 0
+    count = 0
     for segment in bitext_testing:
-        # count += 1
-        # if (count % (len(bitext_testing) / 5) == 0):
-        #     print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%")
+        count += 1
+        if (count % (len(bitext_testing) / 10) == 0):
+            print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%")
         pinyins = bitext_segment_to_pinyin_str(segment)
         expected = bitext_segment_to_char_str(segment).split(u" ")
         actual = None
@@ -206,7 +207,7 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, bigram_counts, can
         elif model_label == "unigram":
             actual = convert_unigram(pinyins, unigram_counts, candidate_map)
         elif model_label == "bigram":
-            actual = convert_bigram_dp(pinyins, unigram_counts, bigram_counts, candidate_map)
+            actual = convert_bigram_dp(pinyins, smoother, candidate_map)
         if actual == None:
             # print "skipped " + u" ".join(expected)
             continue
@@ -238,11 +239,15 @@ if __name__ == "__main__":
     f.write(json.dumps(bigram_counts))
     f.close();
 
+    smoother = smoothing.Laplace(unigram_counts, bigram_counts)
+    # smoother = smoothing.GoodTuring(unigram_counts, bigram_counts)
+    # smoother = smoothing.WittenBell(unigram_counts, bigram_counts)
+
     print("training set accuarcy:")
     print("baseline")
-    print(get_accuracy("baseline", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    print(get_accuracy("baseline", bitext_training, unigram_counts, candidate_map))
     print("unigram")
-    print(get_accuracy("unigram", bitext_training, unigram_counts, bigram_counts, candidate_map))
+    print(get_accuracy("unigram", bitext_training, unigram_counts, candidate_map))
 
     bitext_testing = get_bitext_corpus("test")
 
@@ -252,8 +257,9 @@ if __name__ == "__main__":
     
     print("test set accuarcy:")
     print("baseline")
-    print(get_accuracy("baseline", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print(get_accuracy("baseline", bitext_testing, unigram_counts, candidate_map))
     print("unigram")
-    print(get_accuracy("unigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print(get_accuracy("unigram", bitext_testing, unigram_counts, candidate_map))
     print("bigram")
-    print(get_accuracy("bigram", bitext_testing, unigram_counts, bigram_counts, candidate_map))
+    print(get_accuracy("bigram", bitext_testing, unigram_counts, candidate_map, smoother))
+    
