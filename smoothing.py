@@ -68,10 +68,13 @@ class GoodTuring(object):
                     (1 - (K + 1) * N[K + 1] * 1.0 / N[1])
             self.smoothed_bc[bigram] = c
 
-        for wi in unigram_counts.keys():
-            self.smoothed_uc[wi] = 0.0
-            for wj in self.unigram_counts.keys():
-                self.smoothed_uc[wi] += self.bigram_count(wi, wj)
+        unigrams = list(unigram_counts.keys())
+        print(len(unigrams))
+        for wi in unigrams:
+            uc = 0
+            for wj in unigrams:
+                uc += self.bigram_count(wi, wj)
+            self.smoothed_uc[wi] = uc
 
     def bigram_count(self, w1, w2):
         bigram = w1 + u" " + w2
