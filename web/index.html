@@ -27,7 +27,7 @@
             <option value="20">20</option>
             <option value="50">50</option>
             <option value="100">100</option>
-            <option value="500">500</option>
+            <option value="200">200</option>
         </select>
     </p>
     <p>
@@ -91,6 +91,7 @@
 
             $('#testButton').click(function() {
                 var toDecode = $('.row').length;
+                var decoded = 0;
                 var correct = 0.0;
                 var total = 0.0;
                 $("#info").empty();
@@ -104,7 +105,6 @@
                             smoothing: $('#smoothing').val()
                         })).done(function(data) {
                             $.each(data.split('|'), function(i, char) {
-                                // console.log(char + " " + expected[i]);
                                 total++;
                                 if (char == expected[i]) {
                                     correct++;
@@ -113,11 +113,13 @@
                                 span.addClass(char == expected[i] ? "correct" : "incorrect");
                                 td.append(span);
                             });
-                            toDecode--;
-                            if (toDecode == 0) {
+                            decoded++;
+                            if (toDecode == decoded) {
                                 $("#info").text("Accuracy for this set: " + correct / total);
+                                mandarinspot.annotate();
+                            } else {
+                                $("#info").text(decoded + " / " + toDecode);
                             }
-                            mandarinspot.annotate();
                         });
                 });
             });

@@ -10,12 +10,14 @@ def load_from_json_file(fname):
     data = u"".join(content)
     return json.loads(data)
 
+print("Loading language model...")
 candidate_map = load_from_json_file("candidate_map.json")
 unigram_counts = load_from_json_file("unigram_counts.json")
 bigram_counts = load_from_json_file("bigram_counts.json")
+print("Initalizing smoothed counts...")
 lp_smoother = smoothing.Laplace(unigram_counts, bigram_counts)
 wb_smoother = smoothing.WittenBell(unigram_counts, bigram_counts)
-gt_smoother = smoothing.GoodTuring(unigram_counts, bigram_counts)
+gt_smoother = smoothing.GoodTuring(unigram_counts, bigram_counts, load_from_json_file("gt_smoothed_counts.json"))
 test_bitext = load_from_json_file("test_bitext.json")
 smoothers = {"laplace": lp_smoother, "wittenbell": wb_smoother, "goodturing": gt_smoother}
 

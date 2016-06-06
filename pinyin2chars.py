@@ -68,7 +68,6 @@ def get_bitext_corpus(division):
             last_sid = cid_to_sid(cid)           
     if (cur_segment):
         res.append(copy.deepcopy(cur_segment))
-    print("Done.")
     print("{} text segments parsed.".format(str(len(res))))
     print("{} unique characters found.".format(str(len(training_chars))))
     return res
@@ -89,7 +88,6 @@ def init_candidate_map():
             res[pinyin].append(tup[1])
     res["<s>"] = ["<s>"]
     res["</s>"] = ["</s>"]
-    print("Done.")
     return res
 
 # text: list(list(tokens))
@@ -108,7 +106,6 @@ def get_ngram_counts(text, n):
             gram = u" ".join(line[head:head+n])
             ngram_counts[gram] = ngram_counts.get(gram, 0) + 1
             head += 1
-    print("Done.")
     return ngram_counts
 
 # Baseline: randomly pick a candicate character
@@ -237,6 +234,13 @@ if __name__ == "__main__":
 
     f = open('bigram_counts.json','w')
     f.write(json.dumps(bigram_counts))
+    f.close();
+
+    # Good turing smoothing initialization takes longer. Precomputes it now.
+    print("Intializing smoothing...")
+    smoother = smoothing.GoodTuring(unigram_counts, bigram_counts)
+    f = open('gt_smoothed_counts.json','w')
+    f.write(json.dumps(smoother.smoothed_uc))
     f.close();
 
     smoother = smoothing.Laplace(unigram_counts, bigram_counts)

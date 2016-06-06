@@ -45,14 +45,14 @@ class WittenBell(object):
         return log(prob)
 
 class GoodTuring(object):
-    def __init__(self, unigram_counts, bigram_counts):
+    def __init__(self, unigram_counts, bigram_counts, smoothed_counts=None):
         self.unigram_counts = unigram_counts
         self.bigram_counts = bigram_counts
         self.smoothed_bc = {}
         self.smoothed_uc = {}
         self.N = {}
         self.N_tot = 0
-        # Only do discount up to c = k
+        # Only discount up to c = k
         K = 5
         N = self.N
         for bigram in bigram_counts.keys():
@@ -68,13 +68,16 @@ class GoodTuring(object):
                     (1 - (K + 1) * N[K + 1] * 1.0 / N[1])
             self.smoothed_bc[bigram] = c
 
-        unigrams = list(unigram_counts.keys())
-        print(len(unigrams))
-        for wi in unigrams:
-            uc = 0
-            for wj in unigrams:
-                uc += self.bigram_count(wi, wj)
-            self.smoothed_uc[wi] = uc
+        if smoothed_counts == None:
+            unigrams = list(unigram_counts.keys())
+            for wi in unigrams:
+                uc = 0
+                for wj in unigrams:
+                    uc += self.bigram_count(wi, wj)
+                self.smoothed_uc[wi] = uc
+        else:
+            self.smoothed_uc = smoothed_counts
+
 
     def bigram_count(self, w1, w2):
         bigram = w1 + u" " + w2
