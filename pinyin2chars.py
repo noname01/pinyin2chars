@@ -216,7 +216,7 @@ def convert_bigram_dp_no_tones(pinyin_str, smoother, candidate_map):
             res.insert(0, best_prev[i][last_pair].split(u"#")[0])
             last_pair = best_prev[i][last_pair]
         except AttributeError:
-            print pinyin_str
+            print(pinyin_str)
     return res            
 
 # pinyin_str: string of pinyin tokens, no start/end symbol
@@ -262,7 +262,7 @@ def convert_bigram_dp(pinyin_str, smoother, candidate_map, has_tone=True):
             res.insert(0, best_prev[i][last_pair].split("#")[0])
             last_pair = best_prev[i][last_pair]
         except KeyError:
-            print pinyin_str
+            print(pinyin_str)
     return res            
 
 # model_label: "baseline|unigram|bigram"
@@ -273,7 +273,7 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smo
     for segment in bitext_testing:
         count += 1
         if (count % (len(bitext_testing) / 10) == 0):
-            print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%")
+            print(str(int(round(count * 100.0 / len(bitext_testing)))) + "%"),
         pinyins = bitext_segment_to_pinyin_str(segment)
         if (not has_tone):
             pinyins = re.sub(r"\d", "", pinyins)
@@ -294,6 +294,7 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smo
             total_chars += 1
             if actual[i] == expected[i]:
                 correct_chars += 1
+    print
     return correct_chars * 1.0 / total_chars
 
 
