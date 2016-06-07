@@ -20,7 +20,7 @@ def cid_to_sid(cid):
 def format_cid(ids):
     word_num = str(ids[2]).zfill(3)
     char_num = str(ids[3]).zfill(2)
-    return u"{}.{}-{}:{}".format(unicode(ids[0]), unicode(ids[1]), word_num, char_num)
+    return u"{0}.{1}-{2}:{3}".format(unicode(ids[0]), unicode(ids[1]), word_num, char_num)
 
 def format_pair(character, pinyin):
     return character + u"#" + pinyin
@@ -67,8 +67,8 @@ def get_bitext_corpus(division):
             last_sid = cid_to_sid(cid)           
     if (cur_segment):
         res.append(copy.deepcopy(cur_segment))
-    print("{} text segments parsed.".format(str(len(res))))
-    print("{} unique characters found.".format(str(len(training_chars))))
+    print("{0} text segments parsed.".format(str(len(res))))
+    print("{0} unique characters found.".format(str(len(training_chars))))
     return res
 
 # Builds a map from pinyins to candidate characters.
@@ -93,7 +93,7 @@ def init_candidate_map():
 # Generates a dictionary that maps n-grams to counts.
 # Keys: n-grams separated by spaces.
 def get_ngram_counts(text, n):
-    print("Generating {}-gram model...".format(str(n)))
+    print("Generating {0}-gram model...".format(str(n)))
     ngram_counts = {}
     for segment in text:
         # add start and end symbols
