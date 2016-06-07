@@ -212,8 +212,11 @@ def convert_bigram_dp_no_tones(pinyin_str, smoother, candidate_map):
     res = []
     last_pair = "</s>#</s>"
     for i in reversed(range(2, n)):
-        res.insert(0, best_prev[i][last_pair].split(u"#")[0])
-        last_pair = best_prev[i][last_pair]
+        try:
+            res.insert(0, best_prev[i][last_pair].split(u"#")[0])
+            last_pair = best_prev[i][last_pair]
+        except AttributeError:
+            print pinyin_str
     return res            
 
 # pinyin_str: string of pinyin tokens, no start/end symbol

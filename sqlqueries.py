@@ -1,7 +1,7 @@
 import sqlite3
 
 # TRAINING_SET_TEXT_TYPES = '("A")'
-# TEST_SET_TEXT_TYPES = '("M")'
+# TEST_SET_TEXT_TYPES = '("A")'
 
 TRAINING_SET_TEXT_TYPES = '("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")'
 TEST_SET_TEXT_TYPES = '("L", "M", "N", "P", "R")'
