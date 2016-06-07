@@ -296,7 +296,8 @@ def get_accuracy(model_label, bitext_testing, unigram_counts, candidate_map, smo
                 correct_chars += 1
     return correct_chars * 1.0 / total_chars
 
-if __name__ == "__main__":
+
+def main():
     bitext_training = get_bitext_corpus("training")
     candidate_map = init_candidate_map()
 
@@ -348,3 +349,7 @@ if __name__ == "__main__":
     print(get_accuracy("unigram", bitext_testing, unigram_counts, candidate_map, smoother, has_tone))
     print("bigram")
     print(get_accuracy("bigram", bitext_testing, unigram_counts, candidate_map, smoother, has_tone))
+
+if __name__ == "__main__":
+    main()
+    
